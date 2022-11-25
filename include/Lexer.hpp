@@ -9,57 +9,57 @@
 class Lexer {
 
 private:
-  const std::string_view source;
-  std::size_t current = 0;
-  std::size_t start = 0;
-  std::size_t line = 1;
-  bool hadError;
+  const std::string_view mSource;
+  std::size_t mCurrent = 0;
+  std::size_t mStart = 0;
+  std::size_t mLine = 1;
+  bool mHadError = false;
 
 public:
-  Lexer(std::string_view source) : source(source){};
+  Lexer(std::string_view source) : mSource(source){};
 
   std::vector<Token> lex();
 
 private:
   char advance() {
-    if (this->current >= source.length())
+    if (mCurrent >= mSource.length())
       return EOF;
 
-    this->current += 1;
-    return this->source[this->current - 1];
+    mCurrent += 1;
+    return this->mSource[mCurrent - 1];
   }
 
   char peek() {
-    if (this->current >= source.length())
+    if (mCurrent >= mSource.length())
       return EOF;
 
-    return this->source[this->current];
+    return mSource[mCurrent];
   }
 
   bool match(char c) {
     if (peek() == c) {
-      this->current += 1;
+      mCurrent += 1;
       return true;
     }
     return false;
   }
 
   char peekNext() {
-    if (this->current + 1 >= source.length())
+    if (mCurrent + 1 >= mSource.length())
       return EOF;
 
-    return this->source[this->current + 1];
+    return mSource[mCurrent + 1];
   }
 
   bool isAtEnd() {
-    if (this->current >= source.length())
+    if (mCurrent >= mSource.length())
       return true;
 
     return false;
   }
 
   std::optional<Token> lexSingleToken();
-  LineLoc getLineLoc() { return LineLoc(start, current - 1, line); };
+  LineLoc getLineLoc() { return LineLoc(mStart, mCurrent - 1, mLine); };
   Token lexString();
   Token lexIdentifier();
   Token lexNumber();

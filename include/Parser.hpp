@@ -12,16 +12,16 @@
 class Parser {
 
 private:
-  Lexer lexer;
-  std::size_t current = 0;
-  std::vector<Token> tokens;
-  std::string_view source;
+  Lexer mLexer;
+  std::size_t mCurrent = 0;
+  std::vector<Token> mTokens;
+  std::string_view mSource;
 
 public:
   Parser(std::string_view source) 
-    : lexer(source)
-    , tokens(lexer.lex())
-    , source(source) {}
+    : mLexer(source)
+    , mTokens(mLexer.lex())
+    , mSource(source) {}
   std::vector<NodeAST> parse();
 
 private:
@@ -56,30 +56,30 @@ private:
   }
 
   inline Token &peek() { 
-    return this->tokens[this->current]; 
+    return mTokens[mCurrent]; 
   }
 
   inline Token &previous() { 
-    return this->tokens[this->current - 1]; 
+    return mTokens[mCurrent - 1]; 
   }
 
   inline bool check(TokenType type) { 
-    return this->peek().type == type; 
+    return peek().type == type; 
   }
 
   inline bool isAtEnd() { 
-    return this->peek().type == TokenType::Eof;
+    return peek().type == TokenType::Eof;
   }
 
   void advance() {
     if (!isAtEnd())
-      current += 1;
+      mCurrent += 1;
     return;
   }
 
   bool match(TokenType type) {
     if (check(type)) {
-      this->current += 1;
+      mCurrent += 1;
       return true;
     };
     return false;

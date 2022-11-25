@@ -21,7 +21,7 @@ std::vector<Token> Lexer::lex() {
     std::vector<Token> tokens = {};
 
     while (!isAtEnd()) {
-        this->start = this->current;
+        mStart = mCurrent;
         try {
             std::optional<Token> token = this->lexSingleToken();
             if (token)
@@ -46,7 +46,7 @@ std::optional<Token> Lexer::lexSingleToken() {
 
     case '\n':
     case '\r':
-        this->line += 1;
+        mLine += 1;
         return std::nullopt;
 
     case '#':
@@ -108,7 +108,7 @@ std::optional<Token> Lexer::lexSingleToken() {
 Token Lexer::lexString() {
     while (this->peek() != '"' && !this->isAtEnd()) {
         if (this->peek() == '\n')
-            this->line += 1;
+            mLine += 1;
 
         advance();
     }
@@ -116,10 +116,10 @@ Token Lexer::lexString() {
     advance();
 
     std::string_view substring =
-        this->source.substr(this->start + 1, this->current - this->start - 2);
+        mSource.substr(mStart + 1, mCurrent - mStart - 2);
 
     return Token(TokenType::String, substring,
-                 LineLoc(this->start + 1, this->current - 1, this->line));
+                 LineLoc(mStart + 1, mCurrent - 1, mLine));
 }
 
 Token Lexer::lexIdentifier() {
@@ -127,18 +127,18 @@ Token Lexer::lexIdentifier() {
         advance();
 
     std::string_view keyword =
-        this->source.substr(this->start, this->current - this->start);
+        mSource.substr(mStart, mCurrent - mStart);
     // TODO: support else if, not elif by looking ahead
 
     TokenType type;
     try {
         type = KEYWORDS.at(keyword);
-        return Token(type, LineLoc(this->start, current, line));
+        return Token(type, LineLoc(mStart, mCurrent, mLine));
     } catch (std::out_of_range e) {
         type = TokenType::Identifier;
         // pass lexeme to the keyword which will be used to reference a variable
         return Token(type, keyword,
-                     LineLoc(this->start, this->current, this->line));
+                     LineLoc(mStart, mCurrent, mLine));
     }
 }
 Token Lexer::lexNumber() {
@@ -154,10 +154,10 @@ Token Lexer::lexNumber() {
 
     double num;
     std::string_view string_lexeme =
-        this->source.substr(this->start, this->start - this->current);
+        mSource.substr(mStart, mStart - mCurrent);
     std::from_chars(string_lexeme.data(),
                     string_lexeme.data() + string_lexeme.size(), num);
 
     return Token(TokenType::Number, num,
-                 LineLoc(this->start, this->current, this->line));
+                 LineLoc(mStart, mCurrent, mLine));
 }
