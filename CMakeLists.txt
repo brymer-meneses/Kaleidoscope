@@ -12,9 +12,11 @@ include(cmake/googletest.cmake)
 file(GLOB Kaleidoscope_SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp")
 file(GLOB TEST_FILES "${PROJECT_SOURCE_DIR}/tests/*.cpp")
 
-# PolyLang
+llvm_map_components_to_libnames(llvm_libs support core irreader orcjit native)
+
 add_executable(Kaleidoscope src/main.cpp ${Kaleidoscope_SOURCES})
 add_library(KaleidoscopeLib STATIC ${Kaleidoscope_SOURCES})
+
 
 target_include_directories(KaleidoscopeLib PUBLIC ${PROJECT_SOURCE_DIR}/include) # Link to polylang
 target_link_libraries(Kaleidoscope KaleidoscopeLib ${llvm_libs})

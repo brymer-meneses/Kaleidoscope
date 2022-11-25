@@ -1,13 +1,34 @@
 #ifndef COMPILER_HPP
 #define COMPILER_HPP
 
-#include <map>
-
+#include <llvm/ADT/APFloat.h>
+#include <llvm/ADT/STLExtras.h>
 #include <llvm/IR/BasicBlock.h>
-#include <llvm/IR/Value.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/Scalar/GVN.h>
+#include <llvm/Transforms/Scalar.h>
+
+#include <algorithm>
+#include <cassert>
+#include <cctype>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <memory>
+#include <string>
+#include <vector>
+#include <map>
 
 #include "Visitor.hpp"
 
@@ -19,18 +40,21 @@ private:
   std::unique_ptr<llvm::IRBuilder<>> mBuilder;
   std::unique_ptr<llvm::Module> mModule;
   std::map<std::string_view, llvm::Value*> mNamedValues;
+  std::unique_ptr<llvm::legacy::FunctionPassManager> mPassManager;
 
 public:
-  Compiler() { initializeModule(); };
+  Compiler() { 
+    initializeModule(); 
+    initializePassManager();
+  };
+
   llvm::Function* codegen(const NodeAST& node);
   llvm::Value*    codegen(const ExprAST& node);
 
 private:
-  void initializeModule() {
-    mContext = std::make_unique<llvm::LLVMContext>();
-    mModule = std::make_unique<llvm::Module>("__main__", *mContext);
-    mBuilder = std::make_unique<llvm::IRBuilder<>>(*mContext);
-  }
+  void initializeModule();
+  void initializePassManager();
+
 
   llvm::Value* visit(const BinaryExprAST& node) override;
   llvm::Value* visit(const CallExprAST& node) override;

@@ -1,15 +1,27 @@
 #include "Compiler.hpp"
 #include "AST.hpp"
 
-#include <llvm/IR/BasicBlock.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Type.h>
-#include <llvm/IR/Verifier.h>
-
 #include <iostream>
 #include <cstdio>
+#include <memory>
 #include <utility>
 #include <variant>
+
+void Compiler::initializeModule() {
+  mContext = std::make_unique<llvm::LLVMContext>();
+  mModule = std::make_unique<llvm::Module>("__main__", *mContext);
+  mBuilder = std::make_unique<llvm::IRBuilder<>>(*mContext);
+}
+
+void Compiler::initializePassManager() {
+  mPassManager = std::make_unique<llvm::legacy::FunctionPassManager>(mModule.get());
+
+  mPassManager->add(llvm::createInstructionCombiningPass());
+  mPassManager->add(llvm::createReassociatePass());
+  mPassManager->add(llvm::createGVNPass());
+  mPassManager->add(llvm::createCFGSimplificationPass());
+  mPassManager->doInitialization();
+}
 
 llvm::Value* Compiler::codegen(const ExprAST& node) {
 
@@ -68,6 +80,9 @@ llvm::Function* Compiler::visit(const FunctionAST& node) {
   if (returnValue) {
     mBuilder->CreateRet(returnValue);
     llvm::verifyFunction(*function);
+
+    // Run the optimizer on the function
+    mPassManager->run(*function);
     return function;
   };
 
