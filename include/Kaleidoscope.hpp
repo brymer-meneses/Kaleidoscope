@@ -1,6 +1,7 @@
 #ifndef KALEIDOSCOPE_HPP
 #define KALEIDOSCOPE_HPP
 
+#include "Compiler.hpp"
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -11,10 +12,11 @@ private:
   bool hadError;
   const int argc;
   const char **argv;
+  Compiler mCompiler;
 
 public:
   Kaleidoscope(const int argc, const char **argv)
-      : hadError(false), argc(argc), argv(argv){};
+      : hadError(false), argc(argc), argv(argv), mCompiler() {};
 
   void run();
 
