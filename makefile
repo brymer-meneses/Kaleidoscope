@@ -15,10 +15,10 @@ install_deps:
 
 
 setup:
-	cmake -S . -B build
+	cmake  -H. -GNinja -B build
 
 compile: setup
-	$(MAKE) -s -C "build"
+	cd "./build" && ninja
 
 run: compile setup
 	"./build/Kaleidoscope" $(args)
