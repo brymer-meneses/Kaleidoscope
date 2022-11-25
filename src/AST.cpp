@@ -1,13 +1,6 @@
 #include "AST.hpp"
 #include <iostream>
 
-template <typename T, typename U> 
-bool inline isEqual(const T& t1, const T& t2) {
-  return static_cast<const U&>(t1) == static_cast<const U&>(t2);
-};
-
-
-
 bool NumberExprAST::operator==(const NumberExprAST& other) const {
   return other.value == this->value;
 }
