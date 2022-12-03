@@ -16,7 +16,7 @@ private:
 
 public:
   Kaleidoscope(const int argc, const char **argv)
-      : hadError(false), argc(argc), argv(argv), mCompiler() {};
+      : hadError(false), argc(argc), argv(argv) {};
 
   void run();
 

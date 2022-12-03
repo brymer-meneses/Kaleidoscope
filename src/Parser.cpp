@@ -39,7 +39,7 @@ std::optional<FunctionAST> Parser::parseFunctionDefinition() {
 
 std::optional<FunctionAST> Parser::parseTopLevelExpr() {
   if (auto expr = parseExpression()) {
-    auto proto = std::make_unique<PrototypeAST>("__anon_expr",  std::vector<std::string_view>());
+    auto proto = std::make_unique<PrototypeAST>("__anon_expr",  std::vector<std::string>());
     return FunctionAST(std::move(proto), std::make_unique<ExprAST>(std::move(expr.value())));
   };
 
@@ -66,12 +66,12 @@ std::optional<ExprAST> Parser::parsePrimary() {
 }
 
 std::optional<ExprAST> Parser::parseNumberExpr() {
-  double value = previous().get<double>();
+  double value = previous().getNumber();
   return NumberExprAST(value);
 }
 
 std::optional<ExprAST> Parser::parseIdentifierExpr() {
-  std::string_view idName = previous().get<std::string_view>();
+  std::string_view idName = previous().getString();
 
   if (!match(TokenType::LeftParen)) // Simple variable ref.
     return VariableExprAST(idName);
@@ -142,20 +142,20 @@ std::optional<PrototypeAST> Parser::parsePrototype() {
     return std::nullopt;
   }
 
-  std::string_view fnName = previous().get<std::string_view>();
+  std::string_view fnName = previous().getString();
 
   if (!match(TokenType::LeftParen)) {
     LogError("Expected '(' in prototype");
     return std::nullopt;
   }
 
-  std::vector<std::string_view> args;
+  std::vector<std::string> args;
 
   if (!match(TokenType::RightParen)) {
     while (true) {
       if (match(TokenType::Identifier)) {
-        std::string_view arg = previous().get<std::string_view>();
-        args.push_back(std::move(arg));
+        std::string_view arg = previous().getString();
+        args.emplace_back(std::string(arg));
       }
 
       if (match(TokenType::RightParen))

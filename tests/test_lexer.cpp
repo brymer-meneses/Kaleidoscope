@@ -62,8 +62,8 @@ TEST(Lexer, String) {
   EXPECT_EQ(tokens[0].type, TokenType::String);
   EXPECT_EQ(tokens[1].type, TokenType::String);
 
-  EXPECT_EQ(tokens[0].get<std::string_view>(), "This is a string!");
-  EXPECT_EQ(tokens[1].get<std::string_view>(), "This is another string!");
+  EXPECT_EQ(tokens[0].getString(), "This is a string!");
+  EXPECT_EQ(tokens[1].getString(), "This is another string!");
 }
 
 TEST(Lexer, Keywords) {
@@ -94,7 +94,7 @@ TEST(Lexer, Identifiers) {
 
   for (unsigned int i = 0; i < tokens.size() - 1; i++) {
     EXPECT_EQ(tokens[i].type, TokenType::Identifier);
-    EXPECT_EQ(tokens[i].get<std::string_view>(), correctNames[i]);
+    EXPECT_EQ(tokens[i].getString(), correctNames[i]);
   }
 
   ASSERT_EQ(tokens.back().type, TokenType::Eof);
@@ -110,7 +110,7 @@ TEST(Lexer, Number) {
 
   for (unsigned int i = 0; i < tokens.size() - 1; i++) {
     EXPECT_EQ(tokens[i].type, TokenType::Number);
-    EXPECT_EQ(tokens[i].get<double>(), correctNumbers[i]);
+    EXPECT_EQ(tokens[i].getNumber(), correctNumbers[i]);
   }
 
   ASSERT_EQ(tokens.back().type, TokenType::Eof);

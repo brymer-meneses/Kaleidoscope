@@ -30,22 +30,6 @@ void Kaleidoscope::runPrompt() {
 
 void Kaleidoscope::execute(std::string_view source) {
   Parser parser = Parser(source);
-  auto statements = parser.parse();
-
-  for (NodeAST& statement : statements) {
-    auto* IR = mCompiler.codegen(statement);
-    if (!IR)
-      return;
-
-    IR->print(llvm::errs());
-    fprintf(stderr, "\n");
-
-
-    if (std::holds_alternative<FunctionAST>(statement)) {
-      if (std::get<FunctionAST>(statement).proto->name == "__anon_expr")
-        IR->eraseFromParent();
-    }
-
-  }
-
+  std::vector<NodeAST> nodes = parser.parse();
+  mCompiler.run(std::move(nodes));
 }

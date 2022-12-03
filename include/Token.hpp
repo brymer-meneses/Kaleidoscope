@@ -4,6 +4,7 @@
 #include "Location.hpp"
 #include <cassert>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <variant>
 
@@ -50,25 +51,32 @@ enum class TokenType {
 
 struct Token {
 
-  std::optional<std::variant<double, std::string_view>> data;
-  FileLoc fileLoc;
+  std::optional<std::variant<double, std::string>> data;
+  LineLoc lineLoc;
   TokenType type;
 
   // numbers and strings can only be defined on one line
   Token(TokenType type, double value, LineLoc lineLoc)
-      : type(type), data(value), fileLoc{lineLoc} {}
+      : type(type), data(value), lineLoc(lineLoc) {}
 
   Token(TokenType type, std::string_view value, LineLoc lineLoc)
-      : type(type), data(value), fileLoc{lineLoc} {}
+      : type(type), data(std::string(value)), lineLoc(lineLoc) {}
 
   Token(TokenType type, LineLoc lineLoc)
-      : type(type), data(std::nullopt), fileLoc{lineLoc} {}
+      : type(type), data(std::nullopt), lineLoc(lineLoc) {}
 
-  template <typename T> 
-  T get() {
-    assert(data.has_value() && "data needs to have value" );
-    assert(std::holds_alternative<T>(data.value()) && "must be same type");
-    return std::get<T>(data.value());
+  double getNumber() {
+    assert(data.has_value());
+    assert(std::holds_alternative<double>(data.value()));
+
+    return std::get<double>(data.value());
+  }
+
+  std::string_view getString() {
+    assert(data.has_value());
+    assert(std::holds_alternative<std::string>(data.value()));
+
+    return std::get<std::string>(data.value());
   }
 };
 

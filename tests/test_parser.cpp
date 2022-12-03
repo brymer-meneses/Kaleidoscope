@@ -11,7 +11,7 @@ TEST(Parser, NumberExpr) {
   auto statements = parser.parse();
 
   const auto expected =
-      FunctionAST(std::make_unique<PrototypeAST>("__anon_expr", std::vector<std::string_view>()),
+      FunctionAST(std::make_unique<PrototypeAST>("__anon_expr", std::vector<std::string>()),
                   std::make_unique<ExprAST>(NumberExprAST(42)));
 
   ASSERT_EQ(statements.size(), 1);
@@ -25,7 +25,7 @@ TEST(Parser, VariableExpr) {
   auto statements = parser.parse();
 
   const auto expected =
-      FunctionAST(std::make_unique<PrototypeAST>("__anon_expr", std::vector<std::string_view>()),
+      FunctionAST(std::make_unique<PrototypeAST>("__anon_expr", std::vector<std::string>()),
                   std::make_unique<ExprAST>(VariableExprAST("varname123")));
 
   ASSERT_EQ(statements.size(), 1);
@@ -39,7 +39,7 @@ TEST(Parser, BinaryExpr) {
   auto statements = parser.parse();
 
   const auto expected =
-      FunctionAST(std::make_unique<PrototypeAST>("__anon_expr", std::vector<std::string_view>()),
+      FunctionAST(std::make_unique<PrototypeAST>("__anon_expr", std::vector<std::string>()),
                   std::make_unique<ExprAST>(
                       BinaryExprAST(std::make_unique<ExprAST>(NumberExprAST(55)),
                                     TokenType::Plus, 
@@ -55,7 +55,7 @@ TEST(Parser, GroupingBinaryExpr) {
   auto statements = parser.parse();
 
   const auto expected =
-      FunctionAST(std::make_unique<PrototypeAST>("__anon_expr", std::vector<std::string_view>()),
+      FunctionAST(std::make_unique<PrototypeAST>("__anon_expr", std::vector<std::string>()),
                   std::make_unique<ExprAST>(BinaryExprAST(
                       std::make_unique<ExprAST>(NumberExprAST(55)),
                       TokenType::Star, 
@@ -79,7 +79,7 @@ TEST(Parser, CallExpr) {
   args.emplace_back(NumberExprAST(100));
 
   const auto expected =
-      FunctionAST(std::make_unique<PrototypeAST>("__anon_expr", std::vector<std::string_view>()),
+      FunctionAST(std::make_unique<PrototypeAST>("__anon_expr", std::vector<std::string>()),
                   std::make_unique<ExprAST>(CallExprAST("func", std::move(args))));
 
   ASSERT_EQ(statements.size(), 1);
@@ -90,7 +90,7 @@ TEST(Parser, Extern) {
   Parser parser = Parser("extern sin(angle)");
   auto statements = parser.parse();
 
-  std::vector<std::string_view> args = {"angle"};
+  std::vector<std::string> args = {"angle"};
 
   const auto expected = PrototypeAST("sin", args);
 
@@ -102,7 +102,7 @@ TEST(Parser, FunctionDefinition) {
   Parser parser = Parser("def func(x,y) x+y");
   auto statements = parser.parse();
 
-  std::vector<std::string_view> args = {"x", "y"};
+  std::vector<std::string> args = {"x", "y"};
 
   const auto expected =
       FunctionAST(std::make_unique<PrototypeAST>("func", args),

@@ -31,39 +31,47 @@
 #include <map>
 
 #include "Visitor.hpp"
+#include "KaleidoscopeJIT.hpp"
 
 
 class Compiler : ExprASTVisitor<llvm::Value*>, NodeASTVisitor<llvm::Function*> {
+  using KaleidoscopeJIT = llvm::orc::KaleidoscopeJIT;
 
 private:
   std::unique_ptr<llvm::LLVMContext> mContext;
   std::unique_ptr<llvm::IRBuilder<>> mBuilder;
   std::unique_ptr<llvm::Module> mModule;
+  std::unique_ptr<KaleidoscopeJIT> mJIT;
   std::map<std::string_view, llvm::Value*> mNamedValues;
+  std::map<std::string_view, std::unique_ptr<PrototypeAST>> mFunctionProtos;
   std::unique_ptr<llvm::legacy::FunctionPassManager> mPassManager;
 
 public:
-  Compiler() { 
-    initializeModule(); 
-    initializePassManager();
-  };
+  Compiler();
 
-  llvm::Function* codegen(const NodeAST& node);
-  llvm::Value*    codegen(const ExprAST& node);
+  void run(std::vector<NodeAST> nodes);
+
 
 private:
-  void initializeModule();
-  void initializePassManager();
+  void initializeModuleAndPassManager();
 
+  llvm::Function* codegen(NodeAST& node);
+  llvm::Value*    codegen(ExprAST& node);
 
-  llvm::Value* visit(const BinaryExprAST& node) override;
-  llvm::Value* visit(const CallExprAST& node) override;
-  llvm::Value* visit(const VariableExprAST& node) override;
-  llvm::Value* visit(const NumberExprAST& node) override;
+  llvm::Function* getFunction(std::string_view name);
 
-  llvm::Function* visit(const PrototypeAST& node) override;
-  llvm::Function* visit(const FunctionAST& node) override;
+  llvm::Value* visit(BinaryExprAST& node) override;
+  llvm::Value* visit(CallExprAST& node) override;
+  llvm::Value* visit(VariableExprAST& node) override;
+  llvm::Value* visit(NumberExprAST& node) override;
 
+  llvm::Function* visit(PrototypeAST& node) override;
+  llvm::Function* visit(FunctionAST& node) override;
+
+  void handleExtern(NodeAST& node);
+  void handleFunctionDefinition(NodeAST& node);
+
+  void handleTopLevelExpression(NodeAST& node);
 };
 
 #endif

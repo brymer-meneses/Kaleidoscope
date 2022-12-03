@@ -27,9 +27,9 @@ struct NumberExprAST {
 };
 
 struct VariableExprAST {
-  std::string_view name;
+  std::string name;
 
-  VariableExprAST(const std::string_view& name) : name(name) {}
+  VariableExprAST(std::string_view name) : name(name) {}
 
   bool operator==(const VariableExprAST& other) const;
 };
@@ -45,10 +45,10 @@ struct BinaryExprAST {
 };
 
 struct CallExprAST {
-  std::string_view callee;
+  std::string callee;
   std::vector<ExprAST> args;
 
-  CallExprAST(const std::string_view& callee, std::vector<ExprAST> args)
+  CallExprAST(std::string_view callee, std::vector<ExprAST> args)
       : callee(callee), args(std::move(args)) {}
 
   bool operator==(const CallExprAST& other) const;
@@ -56,10 +56,10 @@ struct CallExprAST {
 
 
 struct PrototypeAST {
-  std::string_view name;
-  std::vector<std::string_view> args;
+  std::string name;
+  std::vector<std::string> args;
 
-  PrototypeAST(const std::string_view& name, std::vector<std::string_view> args)
+  PrototypeAST(std::string_view name, std::vector<std::string> args)
       : name(name), args(std::move(args)) {}
 
   bool operator==(const PrototypeAST& other) const;

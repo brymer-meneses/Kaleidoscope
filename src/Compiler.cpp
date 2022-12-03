@@ -7,13 +7,26 @@
 #include <utility>
 #include <variant>
 
-void Compiler::initializeModule() {
-  mContext = std::make_unique<llvm::LLVMContext>();
-  mModule = std::make_unique<llvm::Module>("__main__", *mContext);
-  mBuilder = std::make_unique<llvm::IRBuilder<>>(*mContext);
+static llvm::ExitOnError ExitOnErr;
+
+Compiler::Compiler() {
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+  llvm::InitializeNativeTargetAsmParser();
+
+  mJIT = ExitOnErr(KaleidoscopeJIT::Create());
+
+  initializeModuleAndPassManager(); 
 }
 
-void Compiler::initializePassManager() {
+void Compiler::initializeModuleAndPassManager() {
+
+  mContext = std::make_unique<llvm::LLVMContext>();
+  mModule = std::make_unique<llvm::Module>("__main__", *mContext);
+  mModule->setDataLayout(mJIT->getDataLayout());
+
+  mBuilder = std::make_unique<llvm::IRBuilder<>>(*mContext);
+
   mPassManager = std::make_unique<llvm::legacy::FunctionPassManager>(mModule.get());
 
   mPassManager->add(llvm::createInstructionCombiningPass());
@@ -23,7 +36,87 @@ void Compiler::initializePassManager() {
   mPassManager->doInitialization();
 }
 
-llvm::Value* Compiler::codegen(const ExprAST& node) {
+void Compiler::run(std::vector<NodeAST> nodes) {
+  for (auto& node : nodes) {
+
+    if (std::holds_alternative<FunctionAST>(node)) {
+      auto& nodeCast = std::get<FunctionAST>(node);
+
+
+      if (nodeCast.proto->name == "__anon_expr") {
+        handleTopLevelExpression(node);
+      } else {
+        handleFunctionDefinition(node);
+      };
+
+      return;
+    } else if (std::holds_alternative<PrototypeAST>(node)) {
+      handleExtern(node);
+    }
+  }
+}
+
+
+llvm::Function* Compiler::getFunction(std::string_view name) {
+
+  if (auto* func = mModule->getFunction(name))
+    return func;
+
+  auto funcIter = mFunctionProtos.find(name);
+
+  if (funcIter != mFunctionProtos.end()) {
+    return visit(*funcIter->second);
+  }
+
+  return nullptr;
+}
+
+void Compiler::handleTopLevelExpression(NodeAST& node) {
+
+  auto IR = codegen(node);
+  if (!IR) return;
+
+  IR->print(llvm::errs());
+  fprintf(stderr, "\n");
+
+  auto resourceTracker = mJIT->getMainJITDylib().createResourceTracker();
+
+  auto threadSafeModule = llvm::orc::ThreadSafeModule(std::move(mModule), std::move(mContext));
+
+  ExitOnErr(mJIT->addModule(std::move(threadSafeModule), resourceTracker));
+  initializeModuleAndPassManager();
+
+  auto exprSymbol = ExitOnErr(mJIT->lookup("__anon_expr"));
+
+  double (*FP)() = (double (*)())(intptr_t) exprSymbol.getAddress();
+
+  double retval = FP();
+  fprintf(stderr, "Evaluated to %f\n", FP());
+
+  ExitOnErr(resourceTracker->remove());
+}
+
+void Compiler::handleFunctionDefinition(NodeAST& node) {
+  auto IR = codegen(node);
+  if (!IR) return;
+
+  IR->print(llvm::errs());
+  fprintf(stderr, "\n");
+  auto threadSafeModule  = llvm::orc::ThreadSafeModule(std::move(mModule), std::move(mContext));
+  ExitOnErr(mJIT->addModule(std::move(threadSafeModule)));
+
+  initializeModuleAndPassManager();
+}
+
+void Compiler::handleExtern(NodeAST& node) {
+  auto IR = codegen(node);
+  if (!IR) return;
+
+  IR->print(llvm::errs());
+  fprintf(stderr, "\n");
+}
+
+llvm::Value* Compiler::codegen(ExprAST& node) {
 
   if (std::holds_alternative<NumberExprAST>(node)) {
     return visit(std::get<NumberExprAST>(node));
@@ -41,7 +134,7 @@ llvm::Value* Compiler::codegen(const ExprAST& node) {
   return nullptr;
 }
  
-llvm::Function* Compiler::codegen(const NodeAST& node) {
+llvm::Function* Compiler::codegen(NodeAST& node) {
 
   if (std::holds_alternative<ExprAST>(node)) {
     codegen(std::get<ExprAST>(node));
@@ -58,12 +151,13 @@ llvm::Function* Compiler::codegen(const NodeAST& node) {
   return nullptr;
 }
 
-llvm::Function* Compiler::visit(const FunctionAST& node) {
+llvm::Function* Compiler::visit(FunctionAST& node) {
 
-  llvm::Function* function = mModule->getFunction(node.proto->name);
 
-  if (!function)
-    function = codegen(*node.proto);
+  auto& proto = *node.proto;
+  mFunctionProtos[proto.name] = std::move(node.proto);
+
+  llvm::Function* function = getFunction(proto.name);
   if (!function)
     return nullptr;
 
@@ -90,12 +184,13 @@ llvm::Function* Compiler::visit(const FunctionAST& node) {
   return nullptr;
 }
 
-llvm::Function* Compiler::visit(const PrototypeAST& node) {
+llvm::Function* Compiler::visit(PrototypeAST& node) {
+
   std::vector<llvm::Type*> doubles(node.args.size(), llvm::Type::getDoubleTy(*mContext));
   llvm::FunctionType *functionType = llvm::FunctionType::get(llvm::Type::getDoubleTy(*mContext), doubles, false);
 
 
-  llvm::Function* func = llvm::Function::Create(functionType, llvm::Function::ExternalLinkage, node.name, *mModule);
+  llvm::Function* func = llvm::Function::Create(functionType, llvm::Function::ExternalLinkage, node.name, mModule.get());
 
   unsigned idx = 0;
   for (auto &arg : func->args()) {
@@ -106,20 +201,19 @@ llvm::Function* Compiler::visit(const PrototypeAST& node) {
   return func;
 }
 
-llvm::Value* Compiler::visit(const NumberExprAST& node) {
+llvm::Value* Compiler::visit(NumberExprAST& node) {
   return llvm::ConstantFP::get(*mContext, llvm::APFloat(node.value));
 };
 
-llvm::Value* Compiler::visit(const VariableExprAST& node) {
+llvm::Value* Compiler::visit(VariableExprAST& node) {
   llvm::Value* value  = mNamedValues[node.name];
   if (!value) {
-    std::cout << "variable " << node.name << "not found" << std::endl;
     return nullptr;
   }
   return value;
 };
 
-llvm::Value* Compiler::visit(const BinaryExprAST& node) {
+llvm::Value* Compiler::visit(BinaryExprAST& node) {
 
   llvm::Value* left  = codegen(*node.left);
   llvm::Value* right = codegen(*node.right);
@@ -151,14 +245,16 @@ llvm::Value* Compiler::visit(const BinaryExprAST& node) {
   }
 }
 
-llvm::Value* Compiler::visit(const CallExprAST& node) {
-  llvm::Function* calleeFunc = mModule->getFunction(node.callee);
+llvm::Value* Compiler::visit(CallExprAST& node) {
+  llvm::Function* calleeFunc = getFunction(node.callee);
+
   if (!calleeFunc) {
     puts("Unknown function referenced");
     return nullptr;
   }
 
   if (calleeFunc->arg_size() != node.args.size()) {
+    std::cout << calleeFunc->arg_size() << " vs " << node.args.size() << "\n";
     puts("Incorrect number of arguments passed");
     return nullptr;
   }

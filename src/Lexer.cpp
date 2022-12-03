@@ -115,19 +115,16 @@ Token Lexer::lexString() {
 
     advance();
 
-    std::string_view substring =
-        mSource.substr(mStart + 1, mCurrent - mStart - 2);
+    std::string_view substring = mSource.substr(mStart + 1, mCurrent - mStart - 2);
 
-    return Token(TokenType::String, substring,
-                 LineLoc(mStart + 1, mCurrent - 1, mLine));
+    return Token(TokenType::String, substring, LineLoc(mStart + 1, mCurrent - 1, mLine));
 }
 
 Token Lexer::lexIdentifier() {
     while (std::isalnum(peek()) || peek() == '_')
         advance();
 
-    std::string_view keyword =
-        mSource.substr(mStart, mCurrent - mStart);
+    std::string keyword = std::string(mSource.substr(mStart, mCurrent - mStart));
     // TODO: support else if, not elif by looking ahead
 
     TokenType type;
@@ -137,8 +134,7 @@ Token Lexer::lexIdentifier() {
     } catch (std::out_of_range e) {
         type = TokenType::Identifier;
         // pass lexeme to the keyword which will be used to reference a variable
-        return Token(type, keyword,
-                     LineLoc(mStart, mCurrent, mLine));
+        return Token(type, keyword, LineLoc(mStart, mCurrent, mLine));
     }
 }
 Token Lexer::lexNumber() {
@@ -153,11 +149,9 @@ Token Lexer::lexNumber() {
     }
 
     double num;
-    std::string_view string_lexeme =
-        mSource.substr(mStart, mStart - mCurrent);
-    std::from_chars(string_lexeme.data(),
-                    string_lexeme.data() + string_lexeme.size(), num);
+    std::string_view numString = mSource.substr(mStart, mStart - mCurrent);
 
-    return Token(TokenType::Number, num,
-                 LineLoc(mStart, mCurrent, mLine));
+    std::from_chars(numString.data(), numString.data() + numString.size(), num);
+
+    return Token(TokenType::Number, num, LineLoc(mStart, mCurrent, mLine));
 }
